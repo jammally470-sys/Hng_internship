@@ -75,7 +75,7 @@
                 <p class="text-sm text-slate-400 mt-1">Sign in to access elite hardware & tech gear</p>
             </div>
 
-            <!-- Google Auth Button (Mock) -->
+            <!-- Google sign-in starts the server-side OAuth flow. -->
             <button onclick="handleGoogleAuth()" type="button" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-100 text-slate-900 font-medium py-3 px-4 rounded-xl transition duration-200 shadow-sm mb-6 active:scale-[0.99]">
                 <svg class="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -86,29 +86,8 @@
                 Continue with Google
             </button>
 
-            <div class="flex items-center my-6">
-                <div class="flex-grow border-t border-slate-800"></div>
-                <span class="px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold">Or email login</span>
-                <div class="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            <!-- Mock Email/Password Form -->
-            <form onsubmit="handleEmailAuth(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
-                    <input type="email" id="login-email" required placeholder="jamal.customer@coretech.io" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-500 transition">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-400 mb-1">Password</label>
-                    <input type="password" id="login-pass" required placeholder="••••••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-brand-500 transition">
-                </div>
-                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-medium py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-brand-600/20 active:scale-[0.99]">
-                    Sign In
-                </button>
-            </form>
-
             <div class="mt-6 text-center">
-                <p class="text-xs text-slate-500">Demo Mode: Any credentials will log you into the shop UI instantly.</p>
+                <p class="text-xs text-slate-500">Sign in securely with your Google Account.</p>
             </div>
         </div>
     </div>
@@ -374,23 +353,7 @@
 
         // Authentication Handlers
         function handleGoogleAuth() {
-            simulateLogin({
-                name: "Jamal's Guest Client",
-                email: "client@coretech.io",
-                avatar: "J"
-            });
-        }
-
-        function handleEmailAuth(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const name = email.split('@')[0];
-            const formattedName = name.charAt(0).toUpperCase() + name.slice(1);
-            simulateLogin({
-                name: formattedName,
-                email: email,
-                avatar: formattedName.charAt(0).toUpperCase()
-            });
+            window.location.assign('/auth/google');
         }
 
         function simulateLogin(userData) {
@@ -417,7 +380,18 @@
             }, 300);
         }
 
-        function logout() {
+        async function logout() {
+            try {
+                const response = await fetch('/auth/logout', {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                if (!response.ok) throw new Error('Sign out failed');
+            } catch (_error) {
+                showToast('Could not sign out. Please try again.');
+                return;
+            }
+
             currentUser = null;
             cart = [];
             updateCartUI();
@@ -633,6 +607,36 @@
                 setTimeout(() => toast.remove(), 300);
             }, 3500);
         }
+
+        // Restore the verified server session when returning to the storefront.
+        fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' })
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Session lookup failed')))
+            .then(({ user }) => {
+                const params = new URLSearchParams(window.location.search);
+                if (user) {
+                    simulateLogin({
+                        name: user.name,
+                        email: user.email,
+                        avatar: (user.name || user.email).charAt(0).toUpperCase()
+                    });
+                }
+                const authMessages = {
+                    cancelled: 'Google sign-in was canceled.',
+                    state_mismatch: 'Sign-in session mismatch. Open http://localhost:3000 and try again.',
+                    invalid_client: 'Google rejected the OAuth client. Check the client ID and secret in .env.',
+                    invalid_grant: 'Google rejected the callback. Check the authorized redirect URI and try signing in again.',
+                    invalid_id_token: 'Google returned an unverified sign-in token. Check that the .env client ID matches this Google OAuth client.',
+                    invalid_identity: 'Google did not return a verified email for this account.',
+                    database_error: 'Google sign-in worked, but Supabase could not save this user. Check the server terminal and database table.',
+                    server_error: 'Sign-in failed on the server. Check the server terminal for the OAuth stage and error code.'
+                };
+                const authError = params.get('auth_error');
+                if (authError && authMessages[authError]) showToast(authMessages[authError]);
+                if (params.has('signed_in') || params.has('auth_error')) {
+                    window.history.replaceState({}, document.title, window.location.pathname + window.location.hash);
+                }
+            })
+            .catch(() => showToast('Unable to check your sign-in session. Please refresh and try again.'));
     </script>
 </body>
 </html>
