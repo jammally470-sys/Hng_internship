@@ -1,6 +1,14 @@
 # Coretech by Jamal
 
-This storefront serves `gemini.html` through a small Node.js server so Google sign-in and Supabase database credentials stay on the server.
+This storefront opens from `public/index.html`. Netlify serves the public directory directly, without requiring a Node.js backend or database credentials just to browse the catalog. The original `gemini.html` file opens the same page when double-clicked.
+
+## Open the storefront
+
+Open `gemini.html` or `public/index.html` in a browser and choose **Browse as guest**. An internet connection is needed for the hosted styles, fonts, and product images.
+
+For a local Netlify preview, run `netlify dev --port 8889` and open `http://localhost:8889`. On Netlify, the site opens at its root URL automatically. Only files in `public` are published; server code and private configuration are not served.
+
+Guest browsing does not create an account. Google sign-in still requires the existing Node.js backend described below; the static Netlify preview does not run that backend. When it is unavailable, the page explains this instead of navigating to a missing sign-in route.
 
 ## Run locally
 

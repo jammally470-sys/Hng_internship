@@ -81,7 +81,7 @@ app.use(session({
 
 app.get(['/', '/gemini.html'], (_req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.sendFile(path.join(__dirname, 'gemini.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.get('/auth/google', (req, res) => {
