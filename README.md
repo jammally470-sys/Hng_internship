@@ -27,4 +27,8 @@ The app requests only the OpenID Connect `openid`, `email`, and `profile` scopes
 
 ## Deployment
 
-Set `GOOGLE_REDIRECT_URI` to the HTTPS callback URL and register that exact URL in Google Cloud. Configure a long random `SESSION_SECRET`, set `NODE_ENV=production`, and serve behind HTTPS. The default Express session store is in-memory for local UI development; use a persistent session store before running multiple production instances. `.env` is ignored by Git; share `.env.example` without placing real credentials in it.
+For Render, use `npm install` as the build command and `npm start` as the start command. The server binds to `0.0.0.0`, reads Render's `PORT`, and trusts Render's proxy in production so secure session cookies work over HTTPS. If `GOOGLE_REDIRECT_URI` is unset or points to localhost, the app uses Render's `RENDER_EXTERNAL_URL` to build its callback URL.
+
+Add `https://<your-service>.onrender.com/auth/google/callback` to the authorized redirect URIs in your Google Cloud OAuth client. If you use a custom domain, set `GOOGLE_REDIRECT_URI` to that domain's HTTPS callback and authorize that exact URI instead.
+
+Set a long random `SESSION_SECRET` and keep credentials in Render environment settings. The default Express session store is in-memory; use a persistent session store before running multiple production instances. `.env` is ignored by Git; share `.env.example` without placing real credentials in it.

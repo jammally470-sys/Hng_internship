@@ -20,8 +20,25 @@ if (missing.length) {
 
 const port = Number(process.env.PORT || 3000);
 const host = '0.0.0.0';
-const redirectUri = process.env.GOOGLE_REDIRECT_URI || `http://localhost:${port}/auth/google/callback`;
 const production = process.env.NODE_ENV === 'production';
+const configuredRedirectUri = process.env.GOOGLE_REDIRECT_URI?.trim();
+const renderExternalUrl = process.env.RENDER_EXTERNAL_URL;
+
+function isLoopbackRedirect(uri) {
+  if (!uri) return false;
+  try {
+    return ['localhost', '127.0.0.1', '[::1]'].includes(new URL(uri).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+const renderRedirectUri = renderExternalUrl
+  ? new URL('/auth/google/callback', renderExternalUrl).toString()
+  : null;
+const redirectUri = renderRedirectUri && (!configuredRedirectUri || isLoopbackRedirect(configuredRedirectUri))
+  ? renderRedirectUri
+  : configuredRedirectUri || `http://localhost:${port}/auth/google/callback`;
 const sessionSecret = process.env.SESSION_SECRET || crypto.randomBytes(48).toString('hex');
 
 if (production && !process.env.SESSION_SECRET) {
@@ -55,6 +72,7 @@ const database = new Pool({
 
 const app = express();
 app.disable('x-powered-by');
+if (production) app.set('trust proxy', 1);
 app.use(session({
   name: 'coretech.sid',
   secret: sessionSecret,
