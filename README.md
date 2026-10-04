@@ -9,7 +9,7 @@ This storefront serves `gemini.html` through a small Node.js server so Google si
    This app connects to Supabase Postgres without TLS. Supabase must allow non-SSL database connections; if SSL enforcement is enabled in the Supabase dashboard, this app will fail to connect. Database credentials and traffic are not encrypted in transit.
 3. In the Google Cloud OAuth client settings, add this exact authorized redirect URI:
 
-   `http://localhost:2222/auth/google/callback`
+   `http://localhost:3000/auth/google/callback`
 
 4. Install the dependencies and start the site:
 
@@ -19,7 +19,7 @@ This storefront serves `gemini.html` through a small Node.js server so Google si
    npm start
    ```
 
-5. Open `http://localhost:2222` and choose **Sign in → Continue with Google**.
+5. Open `http://localhost:3000` and choose **Sign in → Continue with Google**.
 
 `npm run db:setup` creates `public.users` (with row-level security enabled) if it does not exist. On each successful Google sign-in, the server upserts the verified Google subject, email, name, and profile image URL into that table. Repeated sign-ins update the existing row.
 
