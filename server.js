@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const crypto = require('node:crypto');
-const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
 const session = require('express-session');
@@ -44,41 +43,12 @@ if (!['postgres:', 'postgresql:'].includes(databaseUrl.protocol)) {
 }
 // The separate password env value wins and is URL-encoded safely, including reserved characters.
 databaseUrl.password = process.env.SUPABASE_DATABASE_PASSWORD;
-let databaseSsl;
-const configuredDatabaseCa = process.env.SUPABASE_DATABASE_SSL_CA?.trim();
-if (configuredDatabaseCa) {
-  // Render can provide the certificate as a multiline secret, while local development
-  // can continue using a path to the downloaded Supabase CA file.
-  const normalizedDatabaseCa = configuredDatabaseCa.replace(/\\r?\\n/g, '\n');
-  let databaseCa;
-  if (normalizedDatabaseCa.includes('-----BEGIN CERTIFICATE-----')) {
-    databaseCa = normalizedDatabaseCa;
-  } else {
-    try {
-      databaseCa = fs.readFileSync(path.resolve(__dirname, normalizedDatabaseCa), 'utf8');
-    } catch (error) {
-      throw new Error(
-        'SUPABASE_DATABASE_SSL_CA must contain the Supabase CA PEM certificate or point to a readable certificate file.',
-        { cause: error },
-      );
-    }
-  }
-  if (!databaseCa.includes('-----BEGIN CERTIFICATE-----') || !databaseCa.includes('-----END CERTIFICATE-----')) {
-    throw new Error('SUPABASE_DATABASE_SSL_CA does not contain a valid PEM certificate.');
-  }
-  databaseSsl = { ca: databaseCa, rejectUnauthorized: true };
-} else if (production) {
-  throw new Error(
-    'Set SUPABASE_DATABASE_SSL_CA to the Supabase CA PEM certificate or a path to its certificate file in production.',
-  );
-} else {
-  // Supabase's require-style TLS encrypts local development traffic without validating the server certificate.
-  databaseSsl = { rejectUnauthorized: false };
-  console.warn('[Supabase] local TLS is encrypted; set SUPABASE_DATABASE_SSL_CA to verify the server certificate.');
+for (const parameter of ['sslmode', 'ssl', 'sslcert', 'sslkey', 'sslrootcert']) {
+  databaseUrl.searchParams.delete(parameter);
 }
 const database = new Pool({
   connectionString: databaseUrl.toString(),
-  ssl: databaseSsl,
+  ssl: false,
   max: 5,
   connectionTimeoutMillis: 10000,
 });

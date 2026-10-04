@@ -1,7 +1,6 @@
 require('dotenv').config();
 
 const fs = require('node:fs/promises');
-const fsSync = require('node:fs');
 const path = require('node:path');
 const { Pool } = require('pg');
 
@@ -24,22 +23,12 @@ function makePool() {
 
   // Set the password separately so reserved characters are safely URI-encoded.
   databaseUrl.password = password;
-  let ssl;
-  if (process.env.SUPABASE_DATABASE_SSL_CA) {
-    ssl = {
-      ca: fsSync.readFileSync(path.resolve(__dirname, '..', process.env.SUPABASE_DATABASE_SSL_CA), 'utf8'),
-      rejectUnauthorized: true,
-    };
-  } else if (process.env.NODE_ENV === 'production') {
-    throw new Error('Set SUPABASE_DATABASE_SSL_CA to the Supabase CA certificate in production.');
-  } else {
-    // Supabase's require-style TLS encrypts local development traffic without validating the server certificate.
-    ssl = { rejectUnauthorized: false };
-    console.warn('[Supabase] local TLS is encrypted; set SUPABASE_DATABASE_SSL_CA to verify the server certificate.');
+  for (const parameter of ['sslmode', 'ssl', 'sslcert', 'sslkey', 'sslrootcert']) {
+    databaseUrl.searchParams.delete(parameter);
   }
   return new Pool({
     connectionString: databaseUrl.toString(),
-    ssl,
+    ssl: false,
     max: 2,
     connectionTimeoutMillis: 10000,
   });
